@@ -100,8 +100,18 @@ public final class NettyWritableBodyWriter implements TypedMessageBodyHandler<Wr
     }
 
     @Override
+    public Publisher<? extends Writable> readChunked(Argument<Writable> type, MediaType mediaType, Publisher<ByteBuffer<?>> input) {
+        return defaultWritable.readChunked(type, mediaType, input);
+    }
+
+    @Override
     public Writable read(Argument<Writable> type, MediaType mediaType, Headers httpHeaders, InputStream inputStream) throws CodecException {
         return defaultWritable.read(type, mediaType, httpHeaders, inputStream);
+    }
+
+    @Override
+    public Writable read(Argument<Writable> type, MediaType mediaType, InputStream inputStream) throws CodecException {
+        return defaultWritable.read(type, mediaType, inputStream);
     }
 
 }

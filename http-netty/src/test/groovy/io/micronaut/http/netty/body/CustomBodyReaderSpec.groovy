@@ -80,6 +80,11 @@ class CustomBodyReaderSpec extends Specification {
         A read(@NonNull Argument<A> type, @Nullable MediaType mediaType, @NonNull Headers httpHeaders, @NonNull InputStream inputStream) throws CodecException {
             return new A(String.valueOf(httpHeaders.get("my-header")))
         }
+
+        @Override
+        A read(@NonNull Argument<A> type, @Nullable MediaType mediaType, @NonNull InputStream inputStream) throws CodecException {
+            return new A("non-header")
+        }
     }
 
     @Singleton
@@ -92,6 +97,11 @@ class CustomBodyReaderSpec extends Specification {
         C read(@NonNull Argument<C> type, @Nullable MediaType mediaType, @NonNull Headers httpHeaders, @NonNull InputStream inputStream) throws CodecException {
             return new C(String.valueOf(httpHeaders.get("my-header"), String.valueOf(httpHeaders.get("another-header"))))
         }
+
+        @Override
+        C read(@NonNull Argument<C> type, @Nullable MediaType mediaType, @NonNull InputStream inputStream) throws CodecException {
+            return new C("non-header", "non-header")
+        }
     }
 
     @Singleton
@@ -102,6 +112,11 @@ class CustomBodyReaderSpec extends Specification {
         @Override
         String read(@NonNull Argument<String> type, @Nullable MediaType mediaType, @NonNull Headers httpHeaders, @NonNull InputStream inputStream) throws CodecException {
             return "ABC"
+        }
+
+        @Override
+        String read(@NonNull Argument<String> type, @Nullable MediaType mediaType, @NonNull InputStream inputStream) throws CodecException {
+            return "NON"
         }
     }
 

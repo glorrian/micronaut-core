@@ -68,6 +68,11 @@ class CustomFileUploadSpec extends Specification {
 
         @Override
         MyFileUpload read(Argument<MyFileUpload> type, MediaType mediaType, Headers httpHeaders, InputStream inputStream) throws CodecException {
+            return read(type, mediaType, inputStream)
+        }
+
+        @Override
+        MyFileUpload read(Argument<MyFileUpload> type, MediaType mediaType, InputStream inputStream) throws CodecException {
             MIMEMessage mimeMessage = new MIMEMessage(inputStream, mediaType.getParameters().get("boundary").orElse(""))
             mimeMessage.parseAll()
             def attachments = mimeMessage.getAttachments()

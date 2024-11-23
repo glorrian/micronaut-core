@@ -66,7 +66,6 @@ import java.io.OutputStream;
 @JsonMessageHandler.ConsumesJson
 @BootstrapContextCompatible
 @Requires(beans = JsonMapper.class)
-
 public final class NettyJsonHandler<T> implements MessageBodyHandler<T>, ChunkedMessageBodyReader<T>, CustomizableJsonHandler, ResponseBodyWriter<T> {
     private final JsonMessageHandler<T> jsonMessageHandler;
 
@@ -85,20 +84,12 @@ public final class NettyJsonHandler<T> implements MessageBodyHandler<T>, Chunked
 
     @Override
     public Publisher<T> readChunked(Argument<T> type, MediaType mediaType, Headers httpHeaders, Publisher<ByteBuffer<?>> input) {
-        JsonChunkedProcessor processor = new JsonChunkedProcessor();
-        if (Iterable.class.isAssignableFrom(type.getType())) {
-            // Publisher<List<T>> is parsed as a single item of type List
-            processor.counter.noTokenization();
-        } else {
-            // Publisher<T> is unwrapped
-            processor.counter.unwrapTopLevelArray();
-        }
-        return processor.process(Flux.from(input).map(bb -> {
-            if (!(bb.asNativeBuffer() instanceof ByteBuf buf)) {
-                throw new IllegalArgumentException("Only netty buffers are supported");
-            }
-            return buf;
-        })).map(bb -> read(type, mediaType, httpHeaders, bb));
+        return readChunked0(type, mediaType, httpHeaders, input);
+    }
+
+    @Override
+    public Publisher<T> readChunked(Argument<T> type, MediaType mediaType, Publisher<ByteBuffer<?>> input) {
+        return readChunked0(type, mediaType, null, input);
     }
 
     @Override
@@ -114,6 +105,11 @@ public final class NettyJsonHandler<T> implements MessageBodyHandler<T>, Chunked
     @Override
     public T read(Argument<T> type, MediaType mediaType, Headers httpHeaders, InputStream inputStream) throws CodecException {
         return jsonMessageHandler.read(type, mediaType, httpHeaders, inputStream);
+    }
+
+    @Override
+    public T read(Argument<T> type, MediaType mediaType, InputStream inputStream) throws CodecException {
+        return jsonMessageHandler.read(type, mediaType, inputStream);
     }
 
     @Override
@@ -154,5 +150,25 @@ public final class NettyJsonHandler<T> implements MessageBodyHandler<T>, Chunked
     @Override
     public boolean isBlocking() {
         return jsonMessageHandler.isBlocking();
+    }
+
+    private Publisher<T> readChunked0(Argument<T> type, MediaType mediaType, Headers httpHeaders, Publisher<ByteBuffer<?>> input) {
+        JsonChunkedProcessor processor = new JsonChunkedProcessor();
+
+        if (Iterable.class.isAssignableFrom(type.getType())) {
+            processor.counter.noTokenization();
+        } else {
+            processor.counter.unwrapTopLevelArray();
+        }
+
+        return processor.process(Flux.from(input).handle((bb, sink) -> {
+            if (!(bb.asNativeBuffer() instanceof ByteBuf buf)) {
+                sink.error(new IllegalArgumentException("Only netty buffers are supported"));
+                return;
+            }
+            sink.next(buf);
+        })).map(bb -> httpHeaders != null
+            ? read(type, mediaType, httpHeaders, bb)
+            : read(type, mediaType, bb));
     }
 }

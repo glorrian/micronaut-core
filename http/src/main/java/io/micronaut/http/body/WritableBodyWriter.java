@@ -75,16 +75,13 @@ public final class WritableBodyWriter implements TypedMessageBodyHandler<Writabl
         }
     }
 
-    private Writable read0(ByteBuffer<?> byteBuffer) {
-        String s = byteBuffer.toString(applicationConfiguration.getDefaultCharset());
-        if (byteBuffer instanceof ReferenceCounted rc) {
-            rc.release();
-        }
-        return w -> w.write(s);
+    @Override
+    public Publisher<? extends Writable> readChunked(Argument<Writable> type, MediaType mediaType, Headers httpHeaders, Publisher<ByteBuffer<?>> input) {
+        return Flux.from(input).map(this::read0);
     }
 
     @Override
-    public Publisher<? extends Writable> readChunked(Argument<Writable> type, MediaType mediaType, Headers httpHeaders, Publisher<ByteBuffer<?>> input) {
+    public Publisher<? extends Writable> readChunked(Argument<Writable> type, MediaType mediaType, Publisher<ByteBuffer<?>> input) {
         return Flux.from(input).map(this::read0);
     }
 
@@ -94,12 +91,34 @@ public final class WritableBodyWriter implements TypedMessageBodyHandler<Writabl
     }
 
     @Override
+    public Writable read(Argument<Writable> type, MediaType mediaType, ByteBuffer<?> byteBuffer) throws CodecException {
+        return read0(byteBuffer);
+    }
+
+    @Override
     public Writable read(Argument<Writable> type, MediaType mediaType, Headers httpHeaders, InputStream inputStream) throws CodecException {
+        return read0(inputStream);
+    }
+
+    @Override
+    public Writable read(Argument<Writable> type, MediaType mediaType, InputStream inputStream) throws CodecException {
+        return read0(inputStream);
+    }
+
+    private Writable read0(InputStream inputStream) {
         String s;
         try {
             s = new String(inputStream.readAllBytes(), applicationConfiguration.getDefaultCharset());
         } catch (IOException e) {
             throw new CodecException("Failed to read InputStream", e);
+        }
+        return w -> w.write(s);
+    }
+
+    private Writable read0(ByteBuffer<?> byteBuffer) {
+        String s = byteBuffer.toString(applicationConfiguration.getDefaultCharset());
+        if (byteBuffer instanceof ReferenceCounted rc) {
+            rc.release();
         }
         return w -> w.write(s);
     }

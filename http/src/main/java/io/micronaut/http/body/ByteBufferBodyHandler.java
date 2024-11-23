@@ -65,6 +65,11 @@ final class ByteBufferBodyHandler implements TypedMessageBodyHandler<ByteBuffer<
 
     @Override
     public ByteBuffer<?> read(Argument<ByteBuffer<?>> type, MediaType mediaType, Headers httpHeaders, InputStream inputStream) throws CodecException {
+        return read(type, mediaType, inputStream);
+    }
+
+    @Override
+    public ByteBuffer<?> read(Argument<ByteBuffer<?>> type, MediaType mediaType, InputStream inputStream) throws CodecException {
         try {
             return byteBufferFactory.wrap(inputStream.readAllBytes());
         } catch (IOException e) {
@@ -102,4 +107,8 @@ final class ByteBufferBodyHandler implements TypedMessageBodyHandler<ByteBuffer<
         return input;
     }
 
+    @Override
+    public Publisher<? extends ByteBuffer<?>> readChunked(Argument<ByteBuffer<?>> type, MediaType mediaType, Publisher<ByteBuffer<?>> input) {
+        return input;
+    }
 }

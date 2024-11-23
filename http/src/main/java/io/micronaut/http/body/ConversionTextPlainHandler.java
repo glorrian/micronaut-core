@@ -65,6 +65,11 @@ final class ConversionTextPlainHandler<T> implements MessageBodyHandler<T> {
 
     @Override
     public T read(Argument<T> type, MediaType mediaType, Headers httpHeaders, InputStream inputStream) throws CodecException {
+       return read(type, mediaType, inputStream);
+    }
+
+    @Override
+    public T read(Argument<T> type, MediaType mediaType, InputStream inputStream) throws CodecException {
         String text;
         try {
             text = new String(inputStream.readAllBytes(), configuration.getDefaultCharset());

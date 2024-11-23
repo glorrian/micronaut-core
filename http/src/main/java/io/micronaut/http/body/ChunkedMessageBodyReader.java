@@ -39,4 +39,11 @@ public interface ChunkedMessageBodyReader<T> extends MessageBodyReader<T> {
         @NonNull Headers httpHeaders,
         @NonNull Publisher<ByteBuffer<?>> input
     );
+
+    @NonNull
+    Publisher<? extends T> readChunked(
+        @NonNull Argument<T> type,
+        @Nullable MediaType mediaType,
+        @NonNull Publisher<ByteBuffer<?>> input
+    );
 }

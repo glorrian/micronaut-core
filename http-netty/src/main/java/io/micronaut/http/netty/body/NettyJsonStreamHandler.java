@@ -82,19 +82,46 @@ public final class NettyJsonStreamHandler<T> implements MessageBodyHandler<T>, C
     }
 
     @Override
+    public T read(Argument<T> type, MediaType mediaType, ByteBuffer<?> byteBuffer) throws CodecException {
+        if (!type.getType().isAssignableFrom(List.class)) {
+            throw new IllegalArgumentException("Can only read json-stream to a Publisher or list type");
+        }
+        //noinspection unchecked
+        return (T) readChunked((Argument<T>) type.getFirstTypeVariable().orElse(type), mediaType, Flux.just(byteBuffer)).collectList().block();
+    }
+
+    @Override
     public T read(Argument<T> type, MediaType mediaType, Headers httpHeaders, InputStream inputStream) throws CodecException {
         throw new UnsupportedOperationException("Reading from InputStream is not supported for json-stream");
     }
 
     @Override
+    public T read(Argument<T> type, MediaType mediaType, InputStream inputStream) throws CodecException {
+        throw new UnsupportedOperationException("Reading from InputStream is not supported for json-stream");
+    }
+
+    @Override
     public Flux<T> readChunked(Argument<T> type, MediaType mediaType, Headers httpHeaders, Publisher<ByteBuffer<?>> input) {
+        return readChunked0(Flux.from(input), type, mediaType, httpHeaders);
+    }
+
+    @Override
+    public Flux<T> readChunked(Argument<T> type, MediaType mediaType, Publisher<ByteBuffer<?>> input) {
+        return readChunked0(Flux.from(input), type, mediaType, null);
+    }
+
+    // Private method to create JsonChunkedProcessor, process input and convert ByteBuffer
+    private Flux<T> readChunked0(Flux<ByteBuffer<?>> input, Argument<T> type, MediaType mediaType, Headers httpHeaders) {
         JsonChunkedProcessor processor = new JsonChunkedProcessor();
-        return processor.process(Flux.from(input).map(bb -> {
+        return processor.process(input.handle((bb, sink) -> {
             if (!(bb.asNativeBuffer() instanceof ByteBuf buf)) {
-                throw new IllegalArgumentException("Only netty buffers are supported");
+                sink.error(new IllegalArgumentException("Only netty buffers are supported"));
+                return;
             }
-            return buf;
-        })).map(bb -> jsonMessageHandler.read(type, mediaType, httpHeaders, bb));
+            sink.next(buf);
+        })).map(bb -> httpHeaders != null
+            ? jsonMessageHandler.read(type, mediaType, httpHeaders, bb)
+            : jsonMessageHandler.read(type, mediaType, bb));
     }
 
     @Override

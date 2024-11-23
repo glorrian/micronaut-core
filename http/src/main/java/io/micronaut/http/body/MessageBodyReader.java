@@ -28,6 +28,7 @@ import io.micronaut.http.codec.CodecException;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.function.Function;
 
 /**
  * An interface that allows reading a message body from the client or the server.
@@ -55,6 +56,23 @@ public interface MessageBodyReader<T> {
     /**
      * Reads an object from the given byte buffer.
      *
+     * @param type The type being decoded
+     * @param mediaType The media type, can be {@code null}
+     * @param byteBuffer The byte buffer
+     * @return The read object or {@code null}
+     * @throws CodecException If an error occurs decoding
+     */
+    default @Nullable T read(
+        @NonNull Argument<T> type,
+        @Nullable MediaType mediaType,
+        @NonNull ByteBuffer<?> byteBuffer
+    ) throws CodecException {
+        return readByteBuffer(inputStream -> read(type, mediaType, inputStream), byteBuffer);
+    }
+
+    /**
+     * Reads an object from the given byte buffer.
+     *
      * @param type The type being decoded.
      * @param mediaType The media type, can be {@code null}
      * @param httpHeaders The HTTP headers
@@ -66,21 +84,13 @@ public interface MessageBodyReader<T> {
         @NonNull Argument<T> type,
         @Nullable MediaType mediaType,
         @NonNull Headers httpHeaders,
-        @NonNull ByteBuffer<?> byteBuffer) throws CodecException {
-        T read;
-        try (InputStream inputStream = byteBuffer.toInputStream()) {
-            read = read(type, mediaType, httpHeaders, inputStream);
-        } catch (IOException e) {
-            throw new CodecException("Error reading message body: " + e.getMessage(), e);
-        }
-        if (byteBuffer instanceof ReferenceCounted rc) {
-            rc.release();
-        }
-        return read;
+        @NonNull ByteBuffer<?> byteBuffer
+    ) throws CodecException {
+        return readByteBuffer(inputStream -> read(type, mediaType, httpHeaders, inputStream), byteBuffer);
     }
 
     /**
-     * Reads an object from the given byte buffer.
+     * Reads an object from the given input stream.
      *
      * @param type The type being decoded.
      * @param mediaType The media type, can be {@code null}
@@ -94,4 +104,31 @@ public interface MessageBodyReader<T> {
         @Nullable MediaType mediaType,
         @NonNull Headers httpHeaders,
         @NonNull InputStream inputStream) throws CodecException;
+
+    /**
+     * Reads an object from the given input stream.
+     *
+     * @param type The type being decoded
+     * @param mediaType The media type, can be {@code null}
+     * @param inputStream The input stream
+     * @return The read object or {@code null}
+     * @throws CodecException If an error occurs decoding
+     */
+    @Nullable T read(
+        @NonNull Argument<T> type,
+        @Nullable MediaType mediaType,
+        @NonNull InputStream inputStream) throws CodecException;
+
+    private static <T> T readByteBuffer(Function<InputStream, T> readInputStream, ByteBuffer<?> byteBuffer) throws CodecException {
+        T read;
+        try (InputStream inputStream = byteBuffer.toInputStream()) {
+            read = readInputStream.apply(inputStream);
+        } catch (IOException e) {
+            throw new CodecException("Error reading message body: " + e.getMessage(), e);
+        }
+        if (byteBuffer instanceof ReferenceCounted rc) {
+            rc.release();
+        }
+        return read;
+    }
 }

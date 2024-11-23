@@ -132,6 +132,11 @@ abstract sealed class AbstractMessageBodyHandlerRegistry implements MessageBodyH
         public Object read(Argument<Object> type, MediaType mediaType, Headers httpHeaders, InputStream inputStream) throws CodecException {
             return null;
         }
+
+        @Override
+        public Object read(Argument<Object> type, MediaType mediaType, InputStream inputStream) throws CodecException {
+            return null;
+        }
     }
 
     private static final class NoWriter implements MessageBodyWriter<Object> {

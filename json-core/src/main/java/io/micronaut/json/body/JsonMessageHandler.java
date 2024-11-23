@@ -113,6 +113,11 @@ public final class JsonMessageHandler<T> implements MessageBodyHandler<T>, Custo
 
     @Override
     public T read(@NonNull Argument<T> type, MediaType mediaType, @NonNull Headers httpHeaders, @NonNull InputStream inputStream) throws CodecException {
+        return read(type, mediaType, inputStream);
+    }
+
+    @Override
+    public T read(Argument<T> type, MediaType mediaType, InputStream inputStream) throws CodecException {
         try {
             return jsonMapper.readValue(inputStream, type);
         } catch (IOException e) {

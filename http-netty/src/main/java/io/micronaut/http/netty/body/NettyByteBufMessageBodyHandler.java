@@ -62,12 +62,22 @@ public final class NettyByteBufMessageBodyHandler implements TypedMessageBodyHan
     }
 
     @Override
+    public Publisher<ByteBuf> readChunked(Argument<ByteBuf> type, MediaType mediaType, Publisher<ByteBuffer<?>> input) {
+        return Flux.from(input).map(bb -> (ByteBuf) bb.asNativeBuffer());
+    }
+
+    @Override
     public ByteBuf read(Argument<ByteBuf> type, MediaType mediaType, Headers httpHeaders, ByteBuffer<?> byteBuffer) throws CodecException {
         return (ByteBuf) byteBuffer.asNativeBuffer();
     }
 
     @Override
     public ByteBuf read(Argument<ByteBuf> type, MediaType mediaType, Headers httpHeaders, InputStream inputStream) throws CodecException {
+        return read(type, mediaType, inputStream);
+    }
+
+    @Override
+    public ByteBuf read(Argument<ByteBuf> type, MediaType mediaType, InputStream inputStream) throws CodecException {
         try {
             return Unpooled.wrappedBuffer(inputStream.readAllBytes());
         } catch (IOException e) {

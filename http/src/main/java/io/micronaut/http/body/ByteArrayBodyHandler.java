@@ -74,6 +74,16 @@ final class ByteArrayBodyHandler implements TypedMessageBodyHandler<byte[]>, Chu
     }
 
     @Override
+    public byte[] read(Argument<byte[]> type, MediaType mediaType, InputStream inputStream)
+        throws CodecException {
+        try {
+            return inputStream.readAllBytes();
+        } catch (IOException e) {
+            throw new CodecException("Failed to read InputStream", e);
+        }
+    }
+
+    @Override
     public void writeTo(Argument<byte[]> type, MediaType mediaType, byte[] object, MutableHeaders outgoingHeaders, OutputStream outputStream) throws CodecException {
         addContentType(outgoingHeaders, mediaType);
         try {
@@ -91,6 +101,12 @@ final class ByteArrayBodyHandler implements TypedMessageBodyHandler<byte[]>, Chu
 
     @Override
     public Publisher<byte[]> readChunked(Argument<byte[]> type, MediaType mediaType, Headers httpHeaders, Publisher<ByteBuffer<?>> input) {
+        return Flux.from(input).map(ByteArrayBodyHandler::read0);
+    }
+
+    @Override
+    public Publisher<byte[]> readChunked(Argument<byte[]> type, MediaType mediaType,
+                                                   Publisher<ByteBuffer<?>> input) {
         return Flux.from(input).map(ByteArrayBodyHandler::read0);
     }
 

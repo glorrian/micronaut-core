@@ -58,6 +58,38 @@ public final class StringBodyReader implements TypedMessageBodyReader<String>, C
         return read0(byteBuffer, getCharset(mediaType, httpHeaders));
     }
 
+    @Override
+    public String read(Argument<String> type, MediaType mediaType, Headers httpHeaders, InputStream inputStream) throws CodecException {
+       return read0(inputStream, getCharset(mediaType, httpHeaders));
+    }
+
+    @Override
+    public String read(Argument<String> type, MediaType mediaType, InputStream inputStream) throws CodecException {
+        return read0(inputStream);
+    }
+
+    @Override
+    public Publisher<String> readChunked(Argument<String> type, MediaType mediaType, Headers httpHeaders, Publisher<ByteBuffer<?>> input) {
+        return Flux.from(input).map(byteBuffer -> read0(byteBuffer, getCharset(mediaType, httpHeaders)));
+    }
+
+    @Override
+    public Publisher<String> readChunked(Argument<String> type, MediaType mediaType, Publisher<ByteBuffer<?>> input) {
+        return Flux.from(input).map(this::read0);
+    }
+
+    private Charset getCharset(MediaType mediaType, Headers httpHeaders) {
+        return MessageBodyWriter.findCharset(mediaType, httpHeaders).orElse(defaultCharset);
+    }
+
+    private String read0(ByteBuffer<?> byteBuffer) {
+        return read0(byteBuffer, defaultCharset);
+    }
+
+    private String read0(InputStream inputStream) {
+        return read0(inputStream, defaultCharset);
+    }
+
     private String read0(ByteBuffer<?> byteBuffer, Charset charset) {
         String s = byteBuffer.toString(charset);
         if (byteBuffer instanceof ReferenceCounted rc) {
@@ -66,21 +98,11 @@ public final class StringBodyReader implements TypedMessageBodyReader<String>, C
         return s;
     }
 
-    @Override
-    public String read(Argument<String> type, MediaType mediaType, Headers httpHeaders, InputStream inputStream) throws CodecException {
+    private String read0(InputStream inputStream, Charset charset) {
         try {
-            return new String(inputStream.readAllBytes(), getCharset(mediaType, httpHeaders));
+            return new String(inputStream.readAllBytes(), charset);
         } catch (IOException e) {
             throw new CodecException("Failed to read InputStream", e);
         }
-    }
-
-    @Override
-    public Publisher<String> readChunked(Argument<String> type, MediaType mediaType, Headers httpHeaders, Publisher<ByteBuffer<?>> input) {
-        return Flux.from(input).map(byteBuffer -> read0(byteBuffer, getCharset(mediaType, httpHeaders)));
-    }
-
-    private Charset getCharset(MediaType mediaType, Headers httpHeaders) {
-        return MessageBodyWriter.findCharset(mediaType, httpHeaders).orElse(defaultCharset);
     }
 }

@@ -67,17 +67,48 @@ public final class TextPlainObjectBodyReader<T> implements TypedMessageBodyReade
 
     @Override
     public T read(Argument<T> type, MediaType mediaType, Headers httpHeaders, InputStream inputStream) throws CodecException {
-        try {
-            String string = new String(inputStream.readAllBytes(), getCharset(mediaType, httpHeaders));
-            return conversionService.convertRequired(string, type);
-        } catch (IOException e) {
-            throw new CodecException("Failed to read InputStream", e);
-        }
+        return read0(type, inputStream, getCharset(mediaType, httpHeaders));
+    }
+
+    @Override
+    public T read(Argument<T> type, MediaType mediaType, InputStream inputStream) throws CodecException {
+        return read0(type, inputStream);
     }
 
     @Override
     public T read(Argument<T> type, MediaType mediaType, Headers httpHeaders, ByteBuffer<?> byteBuffer) throws CodecException {
         return read0(type, byteBuffer, getCharset(mediaType, httpHeaders));
+    }
+
+    @Override
+    public Publisher<T> readChunked(Argument<T> type, MediaType mediaType, Headers httpHeaders, Publisher<ByteBuffer<?>> input) {
+        return Flux.from(input).map(byteBuffer -> read0(type, byteBuffer, getCharset(mediaType, httpHeaders)));
+    }
+
+    @Override
+    public Publisher<T> readChunked(Argument<T> type, MediaType mediaType, Publisher<ByteBuffer<?>> input) {
+        return Flux.from(input).map(byteBuffer -> read0(type, byteBuffer));
+    }
+
+    private Charset getCharset(MediaType mediaType, Headers httpHeaders) {
+        return MessageBodyWriter.findCharset(mediaType, httpHeaders).orElse(defaultCharset);
+    }
+
+    private T read0(Argument<T> type, InputStream inputStream) {
+        return read0(type, inputStream, defaultCharset);
+    }
+
+    private T read0(Argument<T> type, ByteBuffer<?> byteBuffer) {
+        return read0(type, byteBuffer, defaultCharset);
+    }
+
+    private T read0(Argument<T> type, InputStream inputStream, Charset charset) {
+        try {
+            String string = new String(inputStream.readAllBytes(), charset);
+            return conversionService.convertRequired(string, type);
+        } catch (IOException e) {
+            throw new CodecException("Failed to read InputStream", e);
+        }
     }
 
     private T read0(Argument<T> type, ByteBuffer<?> byteBuffer, Charset charset) {
@@ -86,14 +117,5 @@ public final class TextPlainObjectBodyReader<T> implements TypedMessageBodyReade
             rc.release();
         }
         return conversionService.convertRequired(string, type);
-    }
-
-    @Override
-    public Publisher<T> readChunked(Argument<T> type, MediaType mediaType, Headers httpHeaders, Publisher<ByteBuffer<?>> input) {
-        return Flux.from(input).map(byteBuffer -> read0(type, byteBuffer, getCharset(mediaType, httpHeaders)));
-    }
-
-    private Charset getCharset(MediaType mediaType, Headers httpHeaders) {
-        return MessageBodyWriter.findCharset(mediaType, httpHeaders).orElse(defaultCharset);
     }
 }

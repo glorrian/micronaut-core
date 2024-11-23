@@ -138,6 +138,11 @@ class DefaultHandlerSpec extends Specification {
         }
 
         @Override
+        Object read(@NonNull Argument<Object> type, @Nullable MediaType mediaType, @NonNull InputStream inputStream) throws CodecException {
+            return null
+        }
+
+        @Override
         void writeTo(@NonNull Argument<Object> type, @NonNull MediaType mediaType, Object object, @NonNull MutableHeaders outgoingHeaders, @NonNull OutputStream outputStream) throws CodecException {
 
         }
