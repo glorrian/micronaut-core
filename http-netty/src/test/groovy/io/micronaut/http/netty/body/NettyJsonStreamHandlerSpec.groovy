@@ -17,7 +17,7 @@ class NettyJsonStreamHandlerSpec extends Specification {
 
         when:
         def buf = NettyByteBufferFactory.DEFAULT.wrap(input.getBytes(StandardCharsets.UTF_8))
-        def actual = Flux.from(reader.readChunked(type, null, null, Flux.just(buf)))
+        def actual = Flux.from(reader.readChunked(type, null, Flux.just(buf)))
                 .collectList()
                 .block()
         then:

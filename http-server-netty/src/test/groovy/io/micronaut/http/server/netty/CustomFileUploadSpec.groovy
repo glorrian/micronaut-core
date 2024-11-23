@@ -67,12 +67,7 @@ class CustomFileUploadSpec extends Specification {
     static class MyFileUpdateReader implements MessageBodyReader<MyFileUpload> {
 
         @Override
-        MyFileUpload read(Argument<MyFileUpload> type, MediaType mediaType, Headers httpHeaders, InputStream inputStream) throws CodecException {
-            return read(type, mediaType, inputStream)
-        }
-
-        @Override
-        MyFileUpload read(Argument<MyFileUpload> type, MediaType mediaType, InputStream inputStream) throws CodecException {
+        MyFileUpload read(Argument<MyFileUpload> type, @Nullable MediaType mediaType, InputStream inputStream) throws CodecException {
             MIMEMessage mimeMessage = new MIMEMessage(inputStream, mediaType.getParameters().get("boundary").orElse(""))
             mimeMessage.parseAll()
             def attachments = mimeMessage.getAttachments()
@@ -80,6 +75,11 @@ class CustomFileUploadSpec extends Specification {
             def part = attachments.get(0)
             def headers = part.getAllHeaders().stream().map { Header h -> h.name + ": " + h.value }.collect(Collectors.joining(", "))
             return new MyFileUpload(headers + " " + new String(part.read().readAllBytes(), StandardCharsets.UTF_8))
+        }
+
+        @Override
+        MyFileUpload read(Argument<MyFileUpload> type, MediaType mediaType, Headers httpHeaders, InputStream inputStream) throws CodecException {
+            return read(type, mediaType, inputStream)
         }
     }
 
