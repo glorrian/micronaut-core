@@ -415,6 +415,7 @@ class DefaultUriBuilder implements UriBuilder {
     }
 
     private String encode(String userInfo) {
-        return URLEncoder.encode(userInfo, StandardCharsets.UTF_8);
+        return URLEncoder.encode(userInfo, StandardCharsets.UTF_8)
+                         .replaceAll("\\+", "%20"); // to match RFC3986
     }
 }
