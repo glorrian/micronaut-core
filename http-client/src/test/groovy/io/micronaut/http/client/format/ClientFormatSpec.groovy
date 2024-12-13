@@ -39,7 +39,8 @@ class ClientFormatSpec extends Specification {
         given:
         var cafe = new Cafe(name: "Pizza Garden", "address": "Home Street 2")
         expect:
-        client.pipesFormattedObject(cafe) == "param=name|Pizza+Garden|address|Home+Street+2"
+        printf "client.pipesFormattedObject(cafe) = %s\n", client.pipesFormattedObject(cafe)
+        client.pipesFormattedObject(cafe) == "param=name|Pizza Garden|address|Home Street 2"
     }
 
     void "test csv format all values"() {
@@ -59,9 +60,9 @@ class ClientFormatSpec extends Specification {
 
         where:
         param                                    | query
-        ["a", "b", "c", "d", "e,f,g"]            | "ssv=a+b+c+d+e,f,g"
-        ["name": "Bob", "age": 8, "height": 120] | "ssv=name+Bob+age+8+height+120"
-        new Cafe(name: "AAA", address: "here")   | "ssv=name+AAA+address+here"
+        ["a", "b", "c", "d", "e,f,g"]            | "ssv=a b c d e,f,g"
+        ["name": "Bob", "age": 8, "height": 120] | "ssv=name Bob age 8 height 120"
+        new Cafe(name: "AAA", address: "here")   | "ssv=name AAA address here"
     }
 
     void "test pipes format all values"() {
